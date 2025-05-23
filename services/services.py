@@ -61,6 +61,49 @@ class OpenAIClient(BaseClient):
         return response.choices[0].message.content
 
 
+class AzureOpenAIClient(BaseClient):
+    """
+    config keys:
+        - api_type="azure_openai"
+        - api_key (required)
+        - endpoint (required): The Azure OpenAI endpoint.
+        - model (optional): defaults to "gpt-4o-mini"
+        - deployment (optional): defaults to "gpt-4o-mini"
+        - temperature (optional): defaults to 1.0.
+    """
+
+    api_type = "azure_openai"
+    default_model = os.getenv("AZUREOPENAI_DEFAULT_MODEL", "gpt-4o-mini")
+
+    def __init__(self, config: dict):
+        try:
+            from openai import OpenAI
+        except ImportError:
+            print(
+                "OpenAI library is not installed. Please install it using 'pip install openai'"
+            )
+            sys.exit(1)
+
+        self.config = config
+        self.config["model"] = self.config.get("model", self.default_model)
+        self.config["deployment"] = self.config.get("deployment", self.default_model)
+        self.client = AzureOpenAIClient(
+            api_key=self.config["api_key"],
+            base_url=self.config["endpoint"],
+        )
+
+    def get_completion(self, full_command: str) -> str:
+        response = self.client.chat.completions.create(
+            model=self.config["model"],
+            deployment_id=self.config["deployment"],
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": full_command},
+            ],
+            temperature=float(self.config.get("temperature", 1.0)),
+        )
+        return response.choices[0].message.content
+
 class GoogleGenAIClient(BaseClient):
     """
     config keys:
