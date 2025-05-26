@@ -67,17 +67,18 @@ class AzureOpenAIClient(BaseClient):
         - api_type="azure_openai"
         - api_key (required)
         - endpoint (required): The Azure OpenAI endpoint.
-        - model (optional): defaults to "gpt-4o-mini"
         - deployment (optional): defaults to "gpt-4o-mini"
+        - api_verion (optional): deafults to "2024-12-01-preview"
         - temperature (optional): defaults to 1.0.
     """
 
     api_type = "azure_openai"
-    default_model = os.getenv("AZUREOPENAI_DEFAULT_MODEL", "gpt-4o-mini")
+    default_deployment = os.getenv("AZUREOPENAI_DEFAULT_DEPLOYMENT", "gpt-4o-mini")
+    default_api_version = "2024-12-01-preview"
 
     def __init__(self, config: dict):
         try:
-            from openai import OpenAI
+            from openai import AzureOpenAI 
         except ImportError:
             print(
                 "OpenAI library is not installed. Please install it using 'pip install openai'"
@@ -85,17 +86,17 @@ class AzureOpenAIClient(BaseClient):
             sys.exit(1)
 
         self.config = config
-        self.config["model"] = self.config.get("model", self.default_model)
-        self.config["deployment"] = self.config.get("deployment", self.default_model)
-        self.client = AzureOpenAIClient(
+        self.config["deployment"] = self.config.get("deployment", self.default_deployment)
+        self.config["api_version"] = self.config.get("api_version", self.default_api_version)
+        self.client = AzureOpenAI(
+            api_version=self.config["api_version"],
+            azure_endpoint=self.config["endpoint"],
             api_key=self.config["api_key"],
-            base_url=self.config["endpoint"],
         )
 
     def get_completion(self, full_command: str) -> str:
         response = self.client.chat.completions.create(
-            model=self.config["model"],
-            deployment_id=self.config["deployment"],
+            model=self.config["deployment"],
             messages=[
                 {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": full_command},
@@ -282,7 +283,7 @@ class AmazonBedrock(BaseClient):
 
 
 class ClientFactory:
-    api_types = [OpenAIClient.api_type, GoogleGenAIClient.api_type, GroqClient.api_type, MistralClient.api_type, AmazonBedrock.api_type]
+    api_types = [OpenAIClient.api_type, GoogleGenAIClient.api_type, GroqClient.api_type, MistralClient.api_type, AmazonBedrock.api_type, AzureOpenAIClient.api_type]
 
     @classmethod
     def create(cls):
@@ -306,6 +307,8 @@ class ClientFactory:
                 return MistralClient(config)
             case AmazonBedrock.api_type:
                 return AmazonBedrock(config)
+            case AzureOpenAIClient.api_type:
+                return AzureOpenAIClient(config)
             case _:
                 raise KeyError(
                     f"Specified API type {api_type} is not one of the supported services {cls.api_types}"
