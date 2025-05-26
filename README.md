@@ -96,7 +96,7 @@ Without oh-my-zsh:
 ; Primary service configuration
 ; Set 'service' to match one of the defined sections below.
 [service]
-service = groq_service
+service = azure_openai_service
 
 ; Example configuration for a self-hosted Ollama service.
 [my_ollama]
@@ -124,6 +124,14 @@ model = gemma2-9b-it
 api_type = mistral
 api_key = <mistral_apikey>
 model = mistral-small-latest
+
+; Azure Open AI configuration
+; Provide the 'api_key' and 'endpoint'.
+[azure_openai_service]
+api_type = azure_openai
+api_key = api_key
+endpoint = endpoint
+deployment = deployment_name
 ```
 
 In this configuration file, you can define multiple services with their own configurations. The required and optional parameters of the `api_type` are specified in `services/sevices.py`. Choose which service to use in the `[service]` section.
